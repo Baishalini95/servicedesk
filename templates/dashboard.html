@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Recurrence Detection Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+
+  .badge {
+    font-size: 10px;
+    background: #f59e0b;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn-back {
+    background: #334155;
+    border: none;
+    color: #cbd5e1;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-back:hover { background: #475569; }
+
+  .btn-refresh {
+    background: #f59e0b;
+    border: none;
+    color: #000;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-refresh:hover { opacity: .85; }
+
+  /* ── Layout ── */
+  .page { padding: 20px 24px; }
+
+  /* ── Stat cards ── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .stat-val  { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: #64748b; margin-top: 3px; }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-wrap { position: relative; height: 200px; }
+  .chart-wrap-tall { position: relative; height: 240px; }
+
+  /* ── Keyword bars ── */
+  .kw-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 12px;
+  }
+
+  .kw-label { width: 100px; color: #cbd5e1; text-align: right; flex-shrink: 0; font-weight: 600; }
+  .kw-track { flex: 1; background: #0f172a; border-radius: 4px; height: 10px; overflow: hidden; }
+  .kw-fill  { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width .6s ease; }
+  .kw-count { width: 28px; color: #64748b; text-align: right; flex-shrink: 0; }
+
+  /* ── Cluster cards ── */
+  .cluster-item {
+    background: #0f172a;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+
+  .cluster-kw {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cluster-badge {
+    font-size: 10px;
+    background: #f59e0b22;
+    color: #f59e0b;
+    border: 1px solid #f59e0b44;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .cluster-incs { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .inc-chip {
+    font-size: 10px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* ── RCA ── */
+  .rca-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+  }
+
+  /* ── Loading ── */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 16px;
+  }
+
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid #334155;
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p { color: #64748b; font-size: 14px; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span style="font-size:24px;">🔁</span>
+    <div>
+      <h1>Recurrence Detection Agent <span class="badge">AI</span></h1>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">Pattern analysis · Root cause · Cluster detection</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a href="/" class="btn-back">← Back to Chat</a>
+    <button class="btn-refresh" onclick="loadData()">⟳ Refresh Analysis</button>
+  </div>
+</div>
+
+<!-- Loading state -->
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>Analyzing incidents for recurrence patterns…</p>
+</div>
+
+<!-- Dashboard -->
+<div class="page" id="dashboard" style="display:none;">
+
+  <!-- Stat cards -->
+  <div class="stat-row" id="stat-row"></div>
+
+  <!-- Row 1: Trend + Priority + Category -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">📈 Monthly Trend</div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚨 Priority Distribution</div>
+      <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🗂 Category Breakdown</div>
+      <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Keywords + Group Load -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔑 Top Recurring Keywords</div>
+      <div id="keyword-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 Assignment Group Load</div>
+      <div class="chart-wrap-tall"><canvas id="groupChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Clusters + Location -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔗 Recurrence Clusters</div>
+      <div id="clusters-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📍 Location Hotspots</div>
+      <div class="chart-wrap-tall"><canvas id="locationChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 4: RCA full width -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title">🧠 AI Root Cause Analysis</div>
+    <div class="rca-box" id="rca-box"></div>
+  </div>
+
+</div>
+
+<script>
+  let charts = {};
+
+  function destroyChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  const COLORS = [
+    '#6366f1','#f59e0b','#22c55e','#f87171','#38bdf8',
+    '#a78bfa','#fb923c','#34d399','#e879f9','#facc15'
+  ];
+
+  async function loadData() {
+    document.getElementById('loading').style.display    = 'flex';
+    document.getElementById('dashboard').style.display  = 'none';
+
+    try {
+      const r = await fetch('/recurrence-analysis');
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      render(d);
+    } catch(e) {
+      alert('Failed to load: ' + e.message);
+    }
+  }
+
+  function render(d) {
+    // ── Stat cards ──────────────────────────────────────────────────────────
+    const critCount = (d.priorities.find(p => p.name === 'Critical') || {}).count || 0;
+    const clusters  = d.clusters.length;
+    const topKw     = d.keywords[0] ? d.keywords[0].keyword : '—';
+
+    document.getElementById('stat-row').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#1e3a5f;">📋</div>
+        <div><div class="stat-val" style="color:#38bdf8;">${d.total}</div><div class="stat-label">Total Incidents Analyzed</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#450a0a;">🚨</div>
+        <div><div class="stat-val" style="color:#f87171;">${critCount}</div><div class="stat-label">Critical Priority</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#422006;">🔁</div>
+        <div><div class="stat-val" style="color:#f59e0b;">${clusters}</div><div class="stat-label">Recurrence Clusters</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#1a1a2e;">🔑</div>
+        <div><div class="stat-val" style="color:#a78bfa;font-size:18px;">${topKw}</div><div class="stat-label">Top Recurring Keyword</div></div>
+      </div>
+    `;
+
+    // ── Trend chart ──────────────────────────────────────────────────────────
+    destroyChart('trend');
+    charts['trend'] = new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: d.trend.map(t => t.month),
+        datasets: [{
+          label: 'Incidents',
+          data: d.trend.map(t => t.count),
+          borderColor: '#6366f1',
+          backgroundColor: '#6366f122',
+          fill: true,
+          tension: .4,
+          pointBackgroundColor: '#6366f1',
+          pointRadius: 4
+        }]
+      },
+      options: { ...chartOpts(), plugins: { legend: { display: false } } }
+    });
+
+    // ── Priority doughnut ────────────────────────────────────────────────────
+    destroyChart('priority');
+    const priColors = { Critical:'#f87171', High:'#fb923c', Moderate:'#facc15', Low:'#22c55e', Planning:'#94a3b8' };
+    charts['priority'] = new Chart(document.getElementById('priorityChart'), {
+      type: 'doughnut',
+      data: {
+        labels: d.priorities.map(p => p.name),
+        datasets: [{ data: d.priorities.map(p => p.count), backgroundColor: d.priorities.map(p => priColors[p.name] || '#6366f1'), borderWidth: 0 }]
+      },
+      options: { ...chartOpts(), cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 } } } }
+    });
+
+    // ── Category bar ─────────────────────────────────────────────────────────
+    destroyChart('category');
+    charts['category'] = new Chart(document.getElementById('categoryChart'), {
+      type: 'bar',
+      data: {
+        labels: d.categories.map(c => c.name),
+        datasets: [{ data: d.categories.map(c => c.count), backgroundColor: COLORS, borderRadius: 5 }]
+      },
+      options: { ...chartOpts(), indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+
+    // ── Keyword bars ─────────────────────────────────────────────────────────
+    const maxKw = d.keywords[0] ? d.keywords[0].count : 1;
+    document.getElementById('keyword-bars').innerHTML = d.keywords.map(k => `
+      <div class="kw-bar-row">
+        <div class="kw-label">${k.keyword}</div>
+        <div class="kw-track"><div class="kw-fill" style="width:${Math.round(k.count/maxKw*100)}%"></div></div>
+        <div class="kw-count">${k.count}</div>
+      </div>
+    `).join('');
+
+    // ── Group load bar ───────────────────────────────────────────────────────
+    destroyChart('group');
+    charts['group'] = new Chart(document.getElementById('groupChart'), {
+      type: 'bar',
+      data: {
+        labels: d.groups.map(g => g.name.length > 18 ? g.name.slice(0,18)+'…' : g.name),
+        datasets: [{ data: d.groups.map(g => g.count), backgroundColor: '#38bdf8', borderRadius: 5 }]
+      },
+      options: { ...chartOpts(), plugins: { legend: { display: false } } }
+    });
+
+    // ── Clusters ─────────────────────────────────────────────────────────────
+    document.getElementById('clusters-list').innerHTML = d.clusters.length
+      ? d.clusters.map(c => `
+          <div class="cluster-item">
+            <div class="cluster-kw">
+              🔁 "${c.keyword}"
+              <span class="cluster-badge">${c.count} occurrences</span>
+            </div>
+            <div class="cluster-incs">${c.incidents.map(n => `<span class="inc-chip">${n}</span>`).join('')}</div>
+          </div>
+        `).join('')
+      : '<div style="color:#475569;font-size:12px;text-align:center;padding:20px;">No significant clusters found</div>';
+
+    // ── Location chart ───────────────────────────────────────────────────────
+    destroyChart('location');
+    charts['location'] = new Chart(document.getElementById('locationChart'), {
+      type: 'bar',
+      data: {
+        labels: d.locations.length ? d.locations.map(l => l.name.length > 16 ? l.name.slice(0,16)+'…' : l.name) : ['No location data'],
+        datasets: [{ data: d.locations.length ? d.locations.map(l => l.count) : [0], backgroundColor: '#f59e0b', borderRadius: 5 }]
+      },
+      options: { ...chartOpts(), indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+
+    // ── RCA ──────────────────────────────────────────────────────────────────
+    document.getElementById('rca-box').textContent = d.rca;
+
+    document.getElementById('loading').style.display   = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+  }
+
+  function chartOpts() {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } }
+      },
+      plugins: { legend: { labels: { color: '#94a3b8' } } }
+    };
+  }
+
+  loadData();
+</script>
+</body>
+</html>

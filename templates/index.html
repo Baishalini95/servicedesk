@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Service Desk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    color: #e2e8f0;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 300px;
+    background: #1e293b;
+    border-right: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #334155;
+  }
+
+  .sidebar-header h2 {
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f1f5f9;
+  }
+
+  .badge {
+    font-size: 10px;
+    background: #6366f1;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot-green { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; display: inline-block; }
+
+  .section {
+    padding: 12px 16px;
+    border-bottom: 1px solid #334155;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 10px;
+  }
+
+  .field-label { font-size: 11px; color: #64748b; margin-bottom: 3px; }
+
+  .field-value {
+    font-size: 12px;
+    color: #cbd5e1;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+
+  .field-value.password { letter-spacing: 3px; color: #64748b; }
+
+  .btn {
+    width: 100%;
+    padding: 8px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: opacity .2s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-indigo { background: #6366f1; color: #fff; }
+  .btn-slate  { background: #334155; color: #cbd5e1; }
+
+  .status-line {
+    font-size: 11px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .tool-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 16px;
+  }
+
+  .tool-entry {
+    background: #0f172a;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+
+  .tool-name   { font-weight: 700; margin-bottom: 3px; }
+  .tool-args   { color: #64748b; word-break: break-all; margin-bottom: 3px; }
+  .tool-result { color: #22c55e; word-break: break-all; }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+  }
+
+  /* Agent tabs */
+  .agent-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #1e293b;
+    background: #0f172a;
+  }
+
+  .agent-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1.5px solid #334155;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    background: #1e293b;
+    transition: all .2s;
+    position: relative;
+  }
+
+  .agent-tab:hover { border-color: #6366f1; color: #a5b4fc; }
+
+  .agent-tab.active {
+    border-color: #6366f1;
+    background: #1e1b4b;
+    color: #e0e7ff;
+  }
+
+  .agent-tab.active-kb {
+    border-color: #0ea5e9;
+    background: #0c1a2e;
+    color: #bae6fd;
+  }
+
+  .active-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .5; transform: scale(1.3); }
+  }
+
+  .agent-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .icon-incident { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .icon-kb       { background: linear-gradient(135deg, #0ea5e9, #06b6d4); }
+
+  /* Chat header */
+  .chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-header-left { display: flex; align-items: center; gap: 10px; }
+
+  .avatar-bot {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .chat-header h3 { font-size: 15px; font-weight: 700; }
+  .chat-header p  { font-size: 11px; color: #64748b; }
+
+  .btn-clear {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-clear:hover { background: #334155; }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg-row { display: flex; gap: 10px; align-items: flex-start; }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .avatar-user     { background: #334155; }
+  .avatar-incident { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .avatar-kb       { background: linear-gradient(135deg, #0ea5e9, #06b6d4); }
+
+  .bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .bubble-user     { background: #6366f1; color: #fff; border-bottom-right-radius: 4px; }
+  .bubble-incident { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid #334155; }
+  .bubble-kb       { background: #0c1a2e; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid #0ea5e9; }
+
+  .quick-replies { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  .qr-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .qr-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+  .qr-btn.yes  { border-color: #22c55e; color: #22c55e; }
+  .qr-btn.yes:hover  { background: #14532d; }
+  .qr-btn.no   { border-color: #f87171; color: #f87171; }
+  .qr-btn.no:hover   { background: #450a0a; }
+
+  .bubble strong { color: #a5b4fc; }
+  .bubble-kb strong { color: #7dd3fc; }
+  .bubble-user strong { color: #e0e7ff; }
+
+  .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing span {
+    width: 7px; height: 7px;
+    background: #64748b;
+    border-radius: 50%;
+    animation: bounce .9s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30%          { transform: translateY(-6px); }
+  }
+
+  .input-bar {
+    padding: 14px 20px;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .input-bar input {
+    flex: 1;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 11px 16px;
+    color: #e2e8f0;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .input-bar input:focus { border-color: #6366f1; }
+  .input-bar input::placeholder { color: #475569; }
+
+  .btn-send {
+    border: none;
+    border-radius: 10px;
+    width: 42px; height: 42px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: background .2s;
+  }
+  .btn-send:disabled { background: #334155 !important; cursor: not-allowed; }
+
+  .btn-send-incident { background: #6366f1; }
+  .btn-send-incident:hover { background: #4f46e5; }
+  .btn-send-kb { background: #0ea5e9; }
+  .btn-send-kb:hover { background: #0284c7; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h2>🎯 AI Service Desk <span class="badge">Multi-Agent</span></h2>
+    <div class="subtitle"><span class="dot-green"></span> ServiceNow × Groq LLM · Connected</div>
+  </div>
+
+  <!-- Connection -->
+  <div class="section">
+    <div class="section-title">🔌 Connection</div>
+    <div class="field-label">Instance</div>
+    <div class="field-value" id="sn-url">—</div>
+    <div class="field-label">Username</div>
+    <div class="field-value" id="sn-user">—</div>
+    <div class="field-label">Password</div>
+    <div class="field-value password">••••••••••</div>
+    <button class="btn btn-indigo" onclick="testConnection()">⚡ Test Connection</button>
+    <div class="status-line" id="conn-status" style="display:none"></div>
+  </div>
+
+  <!-- Active Agent -->
+  <div class="section">
+    <div class="section-title">🤖 Active Agent</div>
+    <div id="active-agent-display" style="display:flex;align-items:center;gap:10px;padding:8px;background:#0f172a;border-radius:8px;border:1px solid #334155;">
+      <div class="agent-icon icon-incident">🎯</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#e0e7ff;" id="active-agent-name">Incident Agent</div>
+        <div style="font-size:11px;color:#64748b;" id="active-agent-desc">Assigns incidents to groups</div>
+      </div>
+      <div class="active-dot" style="margin-left:auto;"></div>
+    </div>
+  </div>
+
+  <!-- Tool Activity -->
+  <div class="section" style="border-bottom:none;padding-bottom:6px;">
+    <div class="section-title">🛠 Tool Calls</div>
+  </div>
+  <div class="tool-log" id="tool-log">
+    <div style="font-size:11px;color:#475569;text-align:center;margin-top:20px;">No tool calls yet</div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Agent Tabs -->
+  <div class="agent-tabs">
+    <div class="agent-tab active" id="tab-incident" onclick="switchAgent('incident')">
+      <div class="agent-icon icon-incident">🎯</div>
+      <div>
+        <div>Incident Agent</div>
+        <div style="font-size:10px;font-weight:400;color:#94a3b8;">Assign & resolve incidents</div>
+      </div>
+    </div>
+    <div class="agent-tab" id="tab-kb" onclick="switchAgent('kb')">
+      <div class="agent-icon icon-kb">📚</div>
+      <div>
+        <div>KB Agent</div>
+        <div style="font-size:10px;font-weight:400;color:#94a3b8;">Search & create KB articles</div>
+      </div>
+    </div>
+    <div class="agent-tab" id="tab-recurrence" onclick="openDashboard()">
+      <div class="agent-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">🔁</div>
+      <div>
+        <div>Recurrence Agent</div>
+        <div style="font-size:10px;font-weight:400;color:#94a3b8;">Patterns · RCA · Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Header -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="avatar-bot avatar-incident" id="header-avatar">🎯</div>
+      <div>
+        <h3 id="header-title">Incident Agent</h3>
+        <p id="header-sub">Powered by ServiceNow + Groq LLM</p>
+      </div>
+    </div>
+    <button class="btn-clear" onclick="clearChat()">🗑 Clear</button>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="input-bar">
+    <input id="user-input" type="text" placeholder="Enter incident number or ask anything…"
+           onkeydown="if(event.key==='Enter') sendMessage()" />
+    <button class="btn-send btn-send-incident" id="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+  const SESSION_ID = 'sess_' + Math.random().toString(36).slice(2);
+  let currentAgent = 'incident';
+  let toolLogEmpty = true;
+
+  // Per-agent message history (for display only)
+  const agentMessages = { incident: [], kb: [] };
+
+  const agentConfig = {
+    incident: {
+      tab:       'tab-incident',
+      tabClass:  'active',
+      avatar:    '🎯',
+      avatarCls: 'avatar-incident',
+      bubbleCls: 'bubble-incident',
+      sendCls:   'btn-send-incident',
+      name:      'Incident Agent',
+      sub:       'Assigns incidents to groups & resolves via KB',
+      agentName: 'Incident Agent',
+      agentDesc: 'Assigns incidents to groups',
+      agentIcon: '🎯',
+      agentIconCls: 'icon-incident',
+      placeholder: 'Enter incident number (e.g. INC0000018)…'
+    },
+    kb: {
+      tab:       'tab-kb',
+      tabClass:  'active-kb',
+      avatar:    '📚',
+      avatarCls: 'avatar-kb',
+      bubbleCls: 'bubble-kb',
+      sendCls:   'btn-send-kb',
+      name:      'KB Agent',
+      sub:       'Searches & creates Knowledge Base articles',
+      agentName: 'KB Agent',
+      agentDesc: 'Search & auto-create KB articles',
+      agentIcon: '📚',
+      agentIconCls: 'icon-kb',
+      placeholder: 'Enter incident number to search/create KB…'
+    }
+  };
+
+  function openDashboard() {
+    window.open('/dashboard', '_blank');
+  }
+
+  async function loadConfig() {
+    try {
+      const r = await fetch('/config');
+      const d = await r.json();
+      document.getElementById('sn-url').textContent  = d.url  || '—';
+      document.getElementById('sn-user').textContent = d.user || '—';
+    } catch {}
+  }
+
+  async function testConnection() {
+    const btn = document.querySelector('.btn-indigo');
+    btn.textContent = '⏳ Testing…';
+    try {
+      const r = await fetch('/test-connection');
+      const d = await r.json();
+      const el = document.getElementById('conn-status');
+      el.style.display = 'flex';
+      el.innerHTML = d.ok ? `<span style="color:#22c55e">✅ Connected — ${d.groups} groups</span>` : `<span style="color:#f87171">❌ ${d.error}</span>`;
+    } catch {}
+    btn.textContent = '⚡ Test Connection';
+  }
+
+  function switchAgent(agent) {
+    if (agent === currentAgent) return;
+
+    // Save current messages
+    agentMessages[currentAgent] = Array.from(document.getElementById('messages').children).map(el => el.outerHTML);
+
+    // Update tabs
+    const prev = agentConfig[currentAgent];
+    const next = agentConfig[agent];
+    document.getElementById(prev.tab).classList.remove(prev.tabClass);
+    document.getElementById(next.tab).classList.add(next.tabClass);
+
+    currentAgent = agent;
+
+    // Update header
+    document.getElementById('header-avatar').textContent = next.avatar;
+    document.getElementById('header-avatar').className   = `avatar-bot ${next.avatarCls}`;
+    document.getElementById('header-title').textContent  = next.name;
+    document.getElementById('header-sub').textContent    = next.sub;
+
+    // Update send button
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.className = `btn-send ${next.sendCls}`;
+
+    // Update input placeholder
+    document.getElementById('user-input').placeholder = next.placeholder;
+
+    // Update active agent display in sidebar
+    document.getElementById('active-agent-name').textContent = next.agentName;
+    document.getElementById('active-agent-desc').textContent = next.agentDesc;
+    const iconEl = document.querySelector('#active-agent-display .agent-icon');
+    iconEl.textContent = next.agentIcon;
+    iconEl.className   = `agent-icon ${next.agentIconCls}`;
+
+    // Restore messages for this agent
+    const wrap = document.getElementById('messages');
+    wrap.innerHTML = '';
+    if (agentMessages[agent].length > 0) {
+      agentMessages[agent].forEach(html => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        wrap.appendChild(div.firstChild);
+      });
+      wrap.scrollTop = wrap.scrollHeight;
+    } else {
+      // Greet new agent
+      greetAgent(agent);
+    }
+  }
+
+  function renderMarkdown(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function addMessage(role, text) {
+    const cfg  = agentConfig[currentAgent];
+    const wrap = document.getElementById('messages');
+    const row  = document.createElement('div');
+    row.className = 'msg-row ' + (role === 'user' ? 'user' : '');
+
+    const av = document.createElement('div');
+    av.className = 'avatar ' + (role === 'user' ? 'avatar-user' : cfg.avatarCls);
+    av.textContent = role === 'user' ? '👤' : cfg.avatar;
+
+    const bub = document.createElement('div');
+    bub.className = 'bubble ' + (role === 'user' ? 'bubble-user' : cfg.bubbleCls);
+    bub.innerHTML = renderMarkdown(text);
+
+    // Add yes/no quick-reply buttons if message ends with (yes / no)
+    if (role === 'ai' && /\(yes\s*\/\s*no\)/i.test(text)) {
+      const qr = document.createElement('div');
+      qr.className = 'quick-replies';
+
+      const yesBtn = document.createElement('button');
+      yesBtn.className = 'qr-btn yes';
+      yesBtn.innerHTML = '✅ Yes';
+      yesBtn.onclick = () => { removeQuickReplies(); sendQuick('yes'); };
+
+      const noBtn = document.createElement('button');
+      noBtn.className = 'qr-btn no';
+      noBtn.innerHTML = '❌ No';
+      noBtn.onclick = () => { removeQuickReplies(); sendQuick('no'); };
+
+      qr.appendChild(yesBtn);
+      qr.appendChild(noBtn);
+      bub.appendChild(qr);
+    }
+
+    row.appendChild(av);
+    row.appendChild(bub);
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function removeQuickReplies() {
+    document.querySelectorAll('.quick-replies').forEach(el => el.remove());
+  }
+
+  function sendQuick(val) {
+    document.getElementById('user-input').value = val;
+    sendMessage();
+  }
+
+  function addTyping() {
+    const cfg  = agentConfig[currentAgent];
+    const wrap = document.getElementById('messages');
+    const row  = document.createElement('div');
+    row.className = 'msg-row';
+    row.id = 'typing-row';
+
+    const av = document.createElement('div');
+    av.className = `avatar ${cfg.avatarCls}`;
+    av.textContent = cfg.avatar;
+
+    const bub = document.createElement('div');
+    bub.className = `bubble ${cfg.bubbleCls}`;
+    bub.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+    row.appendChild(av);
+    row.appendChild(bub);
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-row');
+    if (el) el.remove();
+  }
+
+  function logTool(name, args, result) {
+    const cfg = agentConfig[currentAgent];
+    const log = document.getElementById('tool-log');
+    if (toolLogEmpty) { log.innerHTML = ''; toolLogEmpty = false; }
+
+    const colors = { incident: '#818cf8', kb: '#38bdf8' };
+    const entry  = document.createElement('div');
+    entry.className = 'tool-entry';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'tool-name';
+    nameEl.style.color = colors[currentAgent] || '#818cf8';
+    nameEl.textContent = `⚙ [${cfg.name}] ${name}`;
+
+    const argsEl = document.createElement('div');
+    argsEl.className = 'tool-args';
+    argsEl.textContent = JSON.stringify(args);
+
+    const resEl = document.createElement('div');
+    resEl.className = 'tool-result';
+    resEl.textContent = '✅ ' + JSON.stringify(result).slice(0, 120) + '…';
+
+    entry.appendChild(nameEl);
+    entry.appendChild(argsEl);
+    entry.appendChild(resEl);
+    log.prepend(entry);
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const msg   = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+    addMessage('user', msg);
+    addTyping();
+
+    try {
+      const r = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: SESSION_ID, message: msg, agent: currentAgent })
+      });
+      const d = await r.json();
+      removeTyping();
+      if (d.tool_calls) d.tool_calls.forEach(t => logTool(t.name, t.args, t.result));
+      addMessage('ai', d.reply || '⚠️ No response.');
+    } catch (e) {
+      removeTyping();
+      addMessage('ai', '⚠️ Error: ' + e.message);
+    }
+
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+
+  async function greetAgent(agent) {
+    addTyping();
+    try {
+      const r = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: SESSION_ID, message: '', agent })
+      });
+      const d = await r.json();
+      removeTyping();
+      addMessage('ai', d.reply || '👋 Hello!');
+    } catch {
+      removeTyping();
+      addMessage('ai', '👋 Hello!');
+    }
+  }
+
+  function clearChat() {
+    document.getElementById('messages').innerHTML = '';
+    agentMessages[currentAgent] = [];
+    document.getElementById('tool-log').innerHTML =
+      '<div style="font-size:11px;color:#475569;text-align:center;margin-top:20px;">No tool calls yet</div>';
+    toolLogEmpty = true;
+    greetAgent(currentAgent);
+  }
+
+  // Init
+  loadConfig();
+  greetAgent('incident');
+</script>
+</body>
+</html>
