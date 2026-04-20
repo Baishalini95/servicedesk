@@ -999,12 +999,19 @@ async def get_users(q: str = ""):
     }
     if q:
         params["sysparm_query"] = f"nameLIKE{q}^ORemailLIKE{q}"
-    return sn_get("/api/now/table/sys_user", params)
+    try:
+        return sn_get("/api/now/table/sys_user", params)
+    except Exception:
+        return []
 
 
 @app.get("/api/groups")
 async def get_groups():
-    return tool_get_assignment_groups()
+    try:
+        return tool_get_assignment_groups()
+    except Exception as e:
+        print(f"groups error: {e}")
+        return []
 
 
 class AISuggestRequest(BaseModel):
