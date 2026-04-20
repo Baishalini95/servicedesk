@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Interaction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+  .badge { font-size: 10px; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+  .btn-back {
+    background: #334155; border: none; color: #cbd5e1;
+    padding: 7px 14px; border-radius: 8px; font-size: 12px;
+    font-weight: 600; cursor: pointer; text-decoration: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-back:hover { background: #475569; }
+
+  /* ── Layout ── */
+  .page { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+  /* ── Card ── */
+  .card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
+
+  /* ── Form fields ── */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 11px; font-weight: 600; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  label .req { color: #f87171; margin-left: 2px; }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #6366f1; }
+  input::placeholder, textarea::placeholder { color: #475569; }
+  select option { background: #1e293b; }
+  textarea { resize: vertical; min-height: 90px; }
+
+  /* ── AI Suggest button ── */
+  .ai-row { display: flex; gap: 8px; align-items: flex-end; }
+  .ai-row textarea { flex: 1; }
+  .btn-ai {
+    background: #6366f1; border: none; color: #fff;
+    padding: 9px 14px; border-radius: 8px; font-size: 12px;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    display: flex; align-items: center; gap: 5px; height: fit-content;
+  }
+  .btn-ai:hover { background: #4f46e5; }
+  .btn-ai:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── AI suggestion chips ── */
+  .ai-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .ai-chip {
+    font-size: 11px; background: #1e3a5f; border: 1px solid #2563eb44;
+    color: #93c5fd; padding: 3px 10px; border-radius: 20px;
+  }
+
+  /* ── Priority radio ── */
+  .priority-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pri-btn {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px;
+    font-weight: 600; cursor: pointer; border: 1px solid #334155;
+    background: #0f172a; color: #94a3b8; transition: all .15s;
+  }
+  .pri-btn:hover { border-color: #475569; color: #e2e8f0; }
+  .pri-btn.active-critical { background: #450a0a; border-color: #f87171; color: #f87171; }
+  .pri-btn.active-high     { background: #431407; border-color: #fb923c; color: #fb923c; }
+  .pri-btn.active-moderate { background: #422006; border-color: #facc15; color: #facc15; }
+  .pri-btn.active-low      { background: #052e16; border-color: #22c55e; color: #22c55e; }
+  input[name="priority"] { display: none; }
+
+  /* ── File upload ── */
+  .upload-zone {
+    border: 2px dashed #334155; border-radius: 8px;
+    padding: 20px; text-align: center; cursor: pointer;
+    transition: border-color .2s; position: relative;
+  }
+  .upload-zone:hover { border-color: #6366f1; }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone p { font-size: 12px; color: #475569; margin-top: 6px; }
+  #file-list { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip {
+    font-size: 11px; background: #1e293b; border: 1px solid #334155;
+    color: #94a3b8; padding: 3px 10px; border-radius: 20px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .file-chip span { cursor: pointer; color: #f87171; }
+
+  /* ── Toggle switch ── */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label { font-size: 13px; color: #cbd5e1; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: #334155;
+    border-radius: 22px; cursor: pointer; transition: .3s;
+  }
+  .slider:before {
+    content: ''; position: absolute; width: 16px; height: 16px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .3s;
+  }
+  input:checked + .slider { background: #6366f1; }
+  input:checked + .slider:before { transform: translateX(18px); }
+
+  /* ── Submit row ── */
+  .submit-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+  .btn-cancel {
+    background: #334155; border: none; color: #cbd5e1;
+    padding: 10px 22px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; cursor: pointer;
+  }
+  .btn-cancel:hover { background: #475569; }
+  .btn-submit {
+    background: #6366f1; border: none; color: #fff;
+    padding: 10px 28px; border-radius: 8px; font-size: 13px;
+    font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-submit:hover { background: #4f46e5; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #22c55e; color: #fff; padding: 12px 20px;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    display: none; z-index: 999; box-shadow: 0 4px 20px #0008;
+  }
+
+  /* ── Autocomplete dropdown ── */
+  .autocomplete-wrap { position: relative; }
+  .dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    max-height: 180px; overflow-y: auto; display: none;
+  }
+  .dropdown.open { display: block; }
+  .dropdown-item {
+    padding: 9px 12px; font-size: 13px; cursor: pointer; color: #cbd5e1;
+  }
+  .dropdown-item:hover { background: #334155; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span style="font-size:24px;">📝</span>
+    <div>
+      <h1>New Interaction <span class="badge">Form</span></h1>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">Log a new service desk interaction</div>
+    </div>
+  </div>
+  <a href="/" class="btn-back">← Back to Chat</a>
+</div>
+
+<div class="page">
+
+  <!-- ── Caller Information ── -->
+  <div class="card">
+    <div class="card-title">👤 Caller Information</div>
+    <div class="grid-3" style="gap:16px;">
+      <div class="field autocomplete-wrap">
+        <label>Caller Name <span class="req">*</span></label>
+        <input type="text" id="caller-input" placeholder="Search user…" autocomplete="off"/>
+        <div class="dropdown" id="caller-dropdown"></div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="caller-email" placeholder="user@company.com" readonly/>
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="tel" id="caller-phone" placeholder="+1 (555) 000-0000"/>
+      </div>
+      <div class="field">
+        <label>Department</label>
+        <input type="text" id="caller-dept" placeholder="e.g. Finance"/>
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <input type="text" id="caller-location" placeholder="e.g. New York HQ"/>
+      </div>
+      <div class="field">
+        <label>Contact Method</label>
+        <select id="contact-method">
+          <option value="">Select…</option>
+          <option>Phone</option>
+          <option>Email</option>
+          <option>Walk-in</option>
+          <option>Chat</option>
+          <option>Self-Service Portal</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Interaction Details ── -->
+  <div class="card">
+    <div class="card-title">📋 Interaction Details</div>
+
+    <!-- Description + AI Suggest -->
+    <div class="field" style="margin-bottom:16px;">
+      <label>Description <span class="req">*</span></label>
+      <div class="ai-row">
+        <textarea id="description" placeholder="Describe the issue or request in detail…"></textarea>
+        <button class="btn-ai" id="btn-ai" onclick="aiSuggest()">✨ AI Suggest</button>
+      </div>
+      <div class="ai-chips" id="ai-chips" style="display:none;">
+        <span class="ai-chip" id="chip-cat"></span>
+        <span class="ai-chip" id="chip-group"></span>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Short Description <span class="req">*</span></label>
+        <input type="text" id="short-desc" placeholder="One-line summary…" maxlength="80"/>
+      </div>
+      <div class="field">
+        <label>Category <span class="req">*</span></label>
+        <select id="category">
+          <option value="">Select…</option>
+          <option>Incident</option>
+          <option>Requests</option>
+          <option>Inquiry</option>
+          <option>Complaint</option>
+          <option>Praise</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sub-Category</label>
+        <select id="subcategory">
+          <option value="">Select…</option>
+          <option>Hardware</option>
+          <option>Software</option>
+          <option>Network</option>
+          <option>Access / Permissions</option>
+          <option>Email</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="field">
+        <label>Assignment Group</label>
+        <select id="assignment-group">
+          <option value="">Loading…</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Assigned To</label>
+        <input type="text" id="assigned-to" placeholder="Agent name…"/>
+      </div>
+      <div class="field">
+        <label>Channel</label>
+        <select id="channel">
+          <option value="">Select…</option>
+          <option>Phone</option>
+          <option>Email</option>
+          <option>Chat</option>
+          <option>Walk-in</option>
+          <option>Portal</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Priority & Scheduling ── -->
+  <div class="card">
+    <div class="card-title">🚨 Priority & Scheduling</div>
+    <div class="grid-2" style="gap:16px;">
+      <div class="field">
+        <label>Priority <span class="req">*</span></label>
+        <div class="priority-group" id="priority-group">
+          <button type="button" class="pri-btn" data-val="1" onclick="setPriority(this)">🔴 Critical</button>
+          <button type="button" class="pri-btn" data-val="2" onclick="setPriority(this)">🟠 High</button>
+          <button type="button" class="pri-btn active-moderate" data-val="3" onclick="setPriority(this)">🟡 Moderate</button>
+          <button type="button" class="pri-btn" data-val="4" onclick="setPriority(this)">🟢 Low</button>
+        </div>
+        <input type="hidden" name="priority" id="priority-val" value="3"/>
+      </div>
+      <div class="field">
+        <label>State</label>
+        <select id="state">
+          <option value="1">New</option>
+          <option value="2">In Progress</option>
+          <option value="3">On Hold</option>
+          <option value="6">Resolved</option>
+          <option value="7">Closed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Opened At</label>
+        <input type="datetime-local" id="opened-at"/>
+      </div>
+      <div class="field">
+        <label>Due Date</label>
+        <input type="datetime-local" id="due-date"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Additional Info ── -->
+  <div class="card">
+    <div class="card-title">🔧 Additional Information</div>
+    <div class="grid-2" style="gap:16px; margin-bottom:16px;">
+      <div class="field">
+        <label>Configuration Item / Asset</label>
+        <input type="text" id="ci" placeholder="e.g. LAPTOP-00123"/>
+      </div>
+      <div class="field">
+        <label>Related Incident / Request #</label>
+        <input type="text" id="related" placeholder="e.g. INC0012345"/>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Work Notes (Internal)</label>
+      <textarea id="work-notes" placeholder="Internal notes not visible to caller…" style="min-height:70px;"></textarea>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Additional Comments (Visible to Caller)</label>
+      <textarea id="comments" placeholder="Comments visible to the caller…" style="min-height:70px;"></textarea>
+    </div>
+
+    <!-- Toggles -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="toggle-row">
+        <span class="toggle-label">🔔 Notify Caller via Email</span>
+        <label class="toggle"><input type="checkbox" id="notify-email" checked/><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">📌 Mark as VIP Caller</span>
+        <label class="toggle"><input type="checkbox" id="vip"/><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">🔁 Create Follow-up Task</span>
+        <label class="toggle"><input type="checkbox" id="followup"/><span class="slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Attachments ── -->
+  <div class="card">
+    <div class="card-title">📎 Attachments</div>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" multiple accept="image/*,.pdf,.doc,.docx,.txt,.log" onchange="handleFiles(this.files)"/>
+      <div style="font-size:28px;">📂</div>
+      <p>Drag & drop files here or <strong style="color:#6366f1;">browse</strong></p>
+      <p>Supports: images, PDF, DOC, TXT, LOG</p>
+    </div>
+    <div id="file-list"></div>
+  </div>
+
+  <!-- ── Submit ── -->
+  <div class="submit-row">
+    <button class="btn-cancel" onclick="resetForm()">✕ Clear Form</button>
+    <button class="btn-submit" onclick="submitForm()">✔ Submit Interaction</button>
+  </div>
+
+</div>
+
+<div id="toast">✅ Interaction submitted successfully!</div>
+
+<script>
+  // ── Pre-fill opened_at ──────────────────────────────────────────────────────
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('opened-at').value = now.toISOString().slice(0,16);
+
+  // ── Load assignment groups ──────────────────────────────────────────────────
+  fetch('/api/groups').then(r => r.json()).then(groups => {
+    const sel = document.getElementById('assignment-group');
+    sel.innerHTML = '<option value="">Select…</option>' +
+      groups.map(g => `<option value="${g.sys_id}">${g.name}</option>`).join('');
+  }).catch(() => {
+    document.getElementById('assignment-group').innerHTML = '<option value="">Unavailable</option>';
+  });
+
+  // ── Caller autocomplete ─────────────────────────────────────────────────────
+  let callerSysId = '';
+  const callerInput = document.getElementById('caller-input');
+  const callerDrop  = document.getElementById('caller-dropdown');
+
+  callerInput.addEventListener('input', async () => {
+    const q = callerInput.value.trim();
+    if (q.length < 2) { callerDrop.classList.remove('open'); return; }
+    const users = await fetch(`/api/users?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => []);
+    callerDrop.innerHTML = users.map(u =>
+      `<div class="dropdown-item" data-id="${u.sys_id}" data-email="${u.email||''}"
+            onclick="selectCaller(this)">${u.name} <span style="color:#475569;font-size:11px;">${u.email||''}</span></div>`
+    ).join('') || '<div class="dropdown-item" style="color:#475569;">No results</div>';
+    callerDrop.classList.add('open');
+  });
+
+  function selectCaller(el) {
+    callerSysId = el.dataset.id;
+    callerInput.value = el.childNodes[0].textContent.trim();
+    document.getElementById('caller-email').value = el.dataset.email;
+    callerDrop.classList.remove('open');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete-wrap')) callerDrop.classList.remove('open');
+  });
+
+  // ── Priority buttons ────────────────────────────────────────────────────────
+  const priClass = { '1':'active-critical','2':'active-high','3':'active-moderate','4':'active-low' };
+
+  function setPriority(btn) {
+    document.querySelectorAll('.pri-btn').forEach(b => b.className = 'pri-btn');
+    btn.classList.add(priClass[btn.dataset.val]);
+    document.getElementById('priority-val').value = btn.dataset.val;
+  }
+
+  // ── AI Suggest ──────────────────────────────────────────────────────────────
+  async function aiSuggest() {
+    const desc = document.getElementById('description').value.trim();
+    if (!desc) { alert('Please enter a description first.'); return; }
+    const btn = document.getElementById('btn-ai');
+    btn.disabled = true; btn.textContent = '⏳ Thinking…';
+    try {
+      const data = await fetch('/api/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc })
+      }).then(r => r.json());
+
+      if (data.category) {
+        const catSel = document.getElementById('category');
+        [...catSel.options].forEach(o => { if (o.value === data.category) o.selected = true; });
+      }
+      if (data.short_description) document.getElementById('short-desc').value = data.short_description;
+      if (data.assignment_group) {
+        const grpSel = document.getElementById('assignment-group');
+        [...grpSel.options].forEach(o => { if (o.text === data.assignment_group) o.selected = true; });
+      }
+
+      document.getElementById('chip-cat').textContent   = '🗂 ' + (data.category || '—');
+      document.getElementById('chip-group').textContent = '👥 ' + (data.assignment_group || '—');
+      document.getElementById('ai-chips').style.display = 'flex';
+    } catch(e) {
+      alert('AI suggestion failed: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '✨ AI Suggest';
+    }
+  }
+
+  // ── File handling ───────────────────────────────────────────────────────────
+  let attachedFiles = [];
+
+  function handleFiles(files) {
+    [...files].forEach(f => {
+      if (!attachedFiles.find(x => x.name === f.name)) attachedFiles.push(f);
+    });
+    renderFiles();
+  }
+
+  function renderFiles() {
+    document.getElementById('file-list').innerHTML = attachedFiles.map((f, i) =>
+      `<div class="file-chip">📄 ${f.name} <span onclick="removeFile(${i})">✕</span></div>`
+    ).join('');
+  }
+
+  function removeFile(i) { attachedFiles.splice(i, 1); renderFiles(); }
+
+  // Drag & drop
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#6366f1'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = '#334155'; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.style.borderColor = '#334155';
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
+  function submitForm() {
+    const required = [
+      { id: 'caller-input',  label: 'Caller Name' },
+      { id: 'description',   label: 'Description' },
+      { id: 'short-desc',    label: 'Short Description' },
+      { id: 'category',      label: 'Category' },
+    ];
+    for (const f of required) {
+      if (!document.getElementById(f.id).value.trim()) {
+        alert(`"${f.label}" is required.`);
+        document.getElementById(f.id).focus();
+        return;
+      }
+    }
+
+    const payload = {
+      caller:           callerSysId || document.getElementById('caller-input').value,
+      caller_email:     document.getElementById('caller-email').value,
+      caller_phone:     document.getElementById('caller-phone').value,
+      department:       document.getElementById('caller-dept').value,
+      location:         document.getElementById('caller-location').value,
+      contact_method:   document.getElementById('contact-method').value,
+      description:      document.getElementById('description').value,
+      short_description:document.getElementById('short-desc').value,
+      category:         document.getElementById('category').value,
+      subcategory:      document.getElementById('subcategory').value,
+      assignment_group: document.getElementById('assignment-group').value,
+      assigned_to:      document.getElementById('assigned-to').value,
+      channel:          document.getElementById('channel').value,
+      priority:         document.getElementById('priority-val').value,
+      state:            document.getElementById('state').value,
+      opened_at:        document.getElementById('opened-at').value,
+      due_date:         document.getElementById('due-date').value,
+      ci:               document.getElementById('ci').value,
+      related:          document.getElementById('related').value,
+      work_notes:       document.getElementById('work-notes').value,
+      comments:         document.getElementById('comments').value,
+      notify_email:     document.getElementById('notify-email').checked,
+      vip:              document.getElementById('vip').checked,
+      followup:         document.getElementById('followup').checked,
+    };
+
+    console.log('Interaction payload:', payload);
+
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // ── Reset ───────────────────────────────────────────────────────────────────
+  function resetForm() {
+    if (!confirm('Clear all fields?')) return;
+    document.querySelectorAll('input[type="text"],input[type="email"],input[type="tel"],textarea')
+      .forEach(el => el.value = '');
+    document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+    document.getElementById('opened-at').value = now.toISOString().slice(0,16);
+    document.getElementById('due-date').value = '';
+    document.getElementById('priority-val').value = '3';
+    document.querySelectorAll('.pri-btn').forEach(b => b.className = 'pri-btn');
+    document.querySelector('[data-val="3"]').classList.add('active-moderate');
+    document.getElementById('notify-email').checked = true;
+    document.getElementById('vip').checked = false;
+    document.getElementById('followup').checked = false;
+    document.getElementById('ai-chips').style.display = 'none';
+    attachedFiles = []; renderFiles();
+    callerSysId = '';
+  }
+</script>
+</body>
+</html>
